@@ -18,6 +18,8 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#include "esp_timer.h"
+
 #include "Arduino.h"
 #include "AsyncWebSocket.h"
 
@@ -28,6 +30,10 @@
 #else
 #include <Hash.h>
 #endif
+
+#include "esp_log.h"
+
+static const char* TAG = "AsyncWebSocket";
 
 #define MAX_PRINTF_LEN 64
 
@@ -473,7 +479,7 @@ AsyncWebSocketClient::AsyncWebSocketClient(AsyncWebServerRequest *request, Async
   _clientId = _server->_getNextId();
   _status = WS_CONNECTED;
   _pstate = 0;
-  _lastMessageTime = millis();
+  _lastMessageTime = esp_timer_get_time() / 1000ULL;
   _keepAlivePeriod = 0;
   _client->setRxTimeout(0);
   _client->onError([](void *r, AsyncClient* c, int8_t error){ (void)c; ((AsyncWebSocketClient*)(r))->_onError(error); }, this);
@@ -494,7 +500,7 @@ AsyncWebSocketClient::~AsyncWebSocketClient(){
 }
 
 void AsyncWebSocketClient::_onAck(size_t len, uint32_t time){
-  _lastMessageTime = millis();
+  _lastMessageTime = esp_timer_get_time() / 1000ULL;
   if(!_controlQueue.isEmpty()){
     auto head = _controlQueue.front();
     if(head->finished()){
@@ -518,7 +524,7 @@ void AsyncWebSocketClient::_onAck(size_t len, uint32_t time){
 void AsyncWebSocketClient::_onPoll(){
   if(_client->canSend() && (!_controlQueue.isEmpty() || !_messageQueue.isEmpty())){
     _runQueue();
-  } else if(_keepAlivePeriod > 0 && _controlQueue.isEmpty() && _messageQueue.isEmpty() && (millis() - _lastMessageTime) >= _keepAlivePeriod){
+  } else if(_keepAlivePeriod > 0 && _controlQueue.isEmpty() && _messageQueue.isEmpty() && ((esp_timer_get_time() / 1000ULL) - _lastMessageTime) >= _keepAlivePeriod){
     ping((uint8_t *)AWSC_PING_PAYLOAD, AWSC_PING_PAYLOAD_LEN);
   }
 }
@@ -548,7 +554,7 @@ void AsyncWebSocketClient::_queueMessage(AsyncWebSocketMessage *dataMessage){
     return;
   }
   if(_messageQueue.length() >= WS_MAX_QUEUED_MESSAGES){
-      ets_printf("ERROR: Too many messages queued\n");
+      ESP_LOGE(TAG, "ERROR: Too many messages queued\n");
       delete dataMessage;
   } else {
       _messageQueue.add(dataMessage);
@@ -608,7 +614,7 @@ void AsyncWebSocketClient::_onDisconnect(){
 }
 
 void AsyncWebSocketClient::_onData(void *pbuf, size_t plen){
-  _lastMessageTime = millis();
+  _lastMessageTime = esp_timer_get_time() / 1000ULL;
   uint8_t *data = (uint8_t*)pbuf;
   while(plen > 0){
     if(!_pstate){

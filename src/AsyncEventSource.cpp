@@ -19,6 +19,10 @@
 */
 #include "Arduino.h"
 #include "AsyncEventSource.h"
+#include "esp_log.h"
+
+static const char* TAG = "AsyncEventSource";
+
 
 static String generateEventMessage(const char *message, const char *event, uint32_t id, uint32_t reconnect){
   String ev = "";
@@ -185,7 +189,7 @@ void AsyncEventSourceClient::_queueMessage(AsyncEventSourceMessage *dataMessage)
     return;
   }
   if(_messageQueue.length() >= SSE_MAX_QUEUED_MESSAGES){
-      ets_printf("ERROR: Too many messages queued\n");
+      ESP_LOGE(TAG, "ERROR: Too many messages queued\n");
       delete dataMessage;
   } else {
       _messageQueue.add(dataMessage);

@@ -8,6 +8,7 @@ set(COMPONENT_ADD_INCLUDEDIRS
 
 set(COMPONENT_REQUIRES
     "AsyncTCP"
+    "mbedtls"
 )
 
 register_component()

@@ -1,3 +1,4 @@
+#include "esp_timer.h"
 #include "SPIFFSEditor.h"
 #include <FS.h>
 
@@ -530,7 +531,7 @@ void SPIFFSEditor::handleUpload(AsyncWebServerRequest *request, const String& fi
     if(!_username.length() || request->authenticate(_username.c_str(),_password.c_str())){
       _authenticated = true;
       request->_tempFile = _fs.open(filename, "w");
-      _startTime = millis();
+      _startTime = esp_timer_get_time() / 1000ULL;
     }
   }
   if(_authenticated && request->_tempFile){
