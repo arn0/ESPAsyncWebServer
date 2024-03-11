@@ -22,6 +22,7 @@
 #include "AsyncWebSocket.h"
 
 #include <libb64/cencode.h>
+#include "rom/ets_sys.h"
 
 #ifndef ESP8266
 #include "mbedtls/sha1.h"
